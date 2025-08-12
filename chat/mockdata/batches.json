@@ -1,0 +1,16 @@
+[
+  {
+    "material": "MAT-1001",
+    "batch": "B001",
+    "quantity": 50,
+    "validCountries": ["DE", "FR"],
+    "shelfLife": 85
+  },
+  {
+    "material": "MAT-1002",
+    "batch": "B002",
+    "quantity": 30,
+    "validCountries": ["US"],
+    "shelfLife": 75
+  }
+]

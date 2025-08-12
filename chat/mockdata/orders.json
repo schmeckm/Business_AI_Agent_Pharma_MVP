@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ORD-101",
+    "material": "MAT-1001",
+    "country": "DE",
+    "components": [
+      { "material": "PACK-BOX-01", "qty": 100 },
+      { "material": "COMP-API-01", "qty": 10 }
+    ]
+  },
+  {
+    "id": "ORD-102",
+    "material": "MAT-1001",
+    "country": "DE",
+    "components": [
+      { "material": "PACK-LBL-99", "qty": 200 },
+      { "material": "COMP-FILL-02", "qty": 20 }
+    ]
+  }
+]

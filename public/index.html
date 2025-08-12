@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <style>
+    /* McKinsey-Blau Palette */
+    :root {
+      --mc-blue:   #0A2E6E;
+      --mc-dark:   #1A1A1A;
+      --mc-light:  #F5F7FA;
+      --mc-white:  #FFFFFF;
+    }
+
+    body {
+      background: var(--mc-light);
+      color: var(--mc-dark);
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 1em;
+    }
+
+    h2 {
+      color: var(--mc-blue);
+      border-bottom: 2px solid var(--mc-blue);
+      padding-bottom: 0.5em;
+    }
+
+    .chatbox {
+      background: var(--mc-white);
+      border: 1px solid var(--mc-blue);
+      border-radius: 8px;
+      padding: 1em;
+      height: 400px;
+      overflow-y: auto;
+    }
+
+    .chat-msg {
+      margin-bottom: 1em;
+      line-height: 1.4;
+    }
+
+    .user {
+      color: var(--mc-blue);
+      font-weight: bold;
+    }
+
+    .bot {
+      color: var(--mc-dark);
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      width: 80%;
+      padding: 0.5em;
+      border: 1px solid var(--mc-dark);
+      border-radius: 4px;
+    }
+
+    button {
+      background: var(--mc-blue);
+      color: var(--mc-white);
+      border: none;
+      padding: 0.5em 1em;
+      margin-left: 0.5em;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #052250;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>GPT Multi-Agent Chat</h2>
+  <label>Benutzer-ID: <input id="userId" value="planner01" /></label><br><br>
+  <label>Rolle:
+    <select id="role">
+      <option value="Planner">Planner</option>
+      <option value="QA">QA</option>
+      <option value="Purchasing">Purchasing</option>
+      <option value="GlobalSupply">GlobalSupply</option>
+      <option value="Technical">Technical</option>
+    </select>
+  </label><br><br>
+
+  <div class="chatbox" id="chatbox"></div>
+
+  <input type="text" id="messageInput" placeholder="Nachricht..." />
+  <button onclick="sendMessage()">Senden</button>
+
+  <script>
+    function appendMessage(sender, text, cls) {
+      const chatbox = document.getElementById("chatbox");
+      const msg = document.createElement("div");
+      msg.className = 'chat-msg';
+      msg.innerHTML = `<span class="${cls}">${sender}:</span> ${text}`;
+      chatbox.appendChild(msg);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const userId = document.getElementById("userId").value;
+      const role   = document.getElementById("role").value;
+      const message= document.getElementById("messageInput").value;
+      if (!message) return;
+
+      appendMessage(userId, message, 'user');
+      document.getElementById("messageInput").value = '';
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({userId,role,message})
+        });
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        appendMessage('Agent', data.reply, 'bot');
+      } catch (err) {
+        appendMessage('⚠️ Fehler', err.message, 'bot');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+[
+  {
+    "material": "PACK-BOX-01",
+    "lots": [
+      { "id": "IL-1001", "qty": 500, "arrival": "2025-08-09T06:30:00Z" }
+    ]
+  },
+  {
+    "material": "PACK-LBL-99",
+    "lots": []
+  }
+]

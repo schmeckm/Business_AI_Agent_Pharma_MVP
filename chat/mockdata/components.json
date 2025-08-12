@@ -1,0 +1,6 @@
+[
+  { "material": "PACK-BOX-01", "stock": 50 },
+  { "material": "PACK-LBL-99", "stock": 50 },
+  { "material": "COMP-API-01", "stock": 20 },
+  { "material": "COMP-FILL-02", "stock": 100 }
+]
