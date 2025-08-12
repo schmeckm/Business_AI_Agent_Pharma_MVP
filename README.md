@@ -1,229 +1,132 @@
-# Business_AI_Agent_Pharma_MVP
+# Business_AI_Agent_Pharma_MVP (MVP v1 – Simplified Planner Agent)
 
-**Planner-Agent MVP for Pharma operations** that validates and releases daily production orders using mock SAP data and agent collaboration.  
-It checks TRIC country permissions, ATP inventory, Remaining Shelf Life (RMSL) thresholds, and (if blocked) escalates to **QA** or **Purchasing** agents.  
-Designed to be extended toward SAP Build Apps / SAP Build Process Automation workflows.
+> **This README describes the FIRST, simplified Planner Agent.**
+> It does **not** include MQTT, Event Bus, Web UI, or Docker. Those come later in the improved version.
 
----
-
-## ✨ Key Features
-
-- **Daily plan run**: loads ~30 mock orders and selects those due today.
-- **Rule chain** (per order):
-  1) Determine FG material and target country  
-  2) Check bulk lots for valid **TRIC** (country permissions)  
-  3) **ATP** check for bulk & components  
-  4) **RMSL** check per country threshold (e.g., EU ≥ 60 %, RoW ≥ 80 %)  
-  5) If blocked → notify **QA** for prioritization or **Purchasing** for shortages
-- **Agent collaboration**: planning agent calls QA/Purchasing agents (LLM-assisted stubs).
-- **Chat-style logs**: human-readable reasoning trail for each decision.
-- **Config-first**: thresholds & toggles via `.env` (never commit secrets).
-- **Modern Node.js**: built/tested on **Node 20.16.0**.
+A minimal **Planner Agent** for pharma operations that validates and releases daily production orders using **mock data**.  
+The agent applies rule checks (**TRIC**, **ATP**, **RMSL**) and, if needed, **escalates** to lightweight QA/Purchasing stubs.  
+Designed as a small CLI tool to prove the logic before wiring any infrastructure.
 
 ---
 
-## 🧱 Architecture
+## ✨ Scope (what’s in v1)
+
+- **CLI only** (run from terminal)
+- **Mock data only** (JSON files)
+- Checks per order:
+  - **TRIC** – country permissions on bulk lots
+  - **ATP** – availability for bulk & components
+  - **RMSL** – remaining shelf life thresholds (EU vs RoW)
+- If a check fails → mark order **blocked** and suggest **QA** (quality) or **Purchasing** (material) action
+- Generates a **human‑readable planning report** in the console
+
+**Not included in v1:** MQTT, Event Bus, Web UI, REST API, Docker
+
+---
+
+## 🧱 Project Structure (v1)
 
 ```
-planner-agent/              # root
+planner-agent/
 ├─ src/
 │  ├─ agents/
-│  │  ├─ planningAgent.js
-│  │  ├─ qaAgent.js
-│  │  └─ purchasingAgent.js
-│  ├─ data/                 # mock JSON (orders, lots, stock, TRIC, RMSL)
+│  │  ├─ planningAgent.js      # main decision logic
+│  │  ├─ qaAgent.js            # simple escalation stub
+│  │  └─ purchasingAgent.js    # simple escalation stub
+│  ├─ data/                    # mock JSON (orders, lots, stock, TRIC, RMSL)
 │  ├─ services/
-│  │  ├─ tricService.js     # country permissions
-│  │  ├─ atpService.js      # availability to promise
-│  │  ├─ rmslService.js     # remaining shelf life checks
-│  │  └─ notifyService.js   # notifications/event bus hooks
-│  ├─ api/
-│  │  └─ server.js          # optional REST endpoints (health, run plan)
+│  │  ├─ tricService.js        # TRIC checks
+│  │  ├─ atpService.js         # ATP checks
+│  │  └─ rmslService.js        # RMSL checks
 │  ├─ utils/
 │  │  └─ logger.js
-│  └─ index.js              # CLI entrypoint
-├─ tests/                   # unit tests
-├─ .env                     # local config (DO NOT COMMIT)
+│  └─ index.js                 # CLI entrypoint (runs the planning)
+├─ tests/                      # optional unit tests
+├─ .env                        # local config (DO NOT COMMIT)
 ├─ .gitignore
 ├─ package.json
 └─ README.md
 ```
 
-> 📌 Planned integration: SAP Build Apps front-end and SAP Build Process Automation for workflow orchestration; switch from mock data to S/4HANA APIs later.
-
 ---
 
 ## ⚙️ Requirements
 
-- Node.js **20.16.0** (LTS-compatible)
+- Node.js **20.16.0**
 - npm or pnpm
-- (optional) Docker / Docker Compose
 
 ---
 
-## 🔐 Environment Variables
+## 🔐 Environment (local only)
 
-Create a local `.env` (do **not** commit it):
+Create a local `.env` (do **not** commit secrets):
 
 ```env
-# General
 NODE_ENV=development
-PORT=4000
 
-# Planner run
-PLANNER_RUN_AT_START=true
+# How many orders to release today
 DUE_TODAY_COUNT=5
 
-# Country thresholds for RMSL (defaults: EU=60%, RoW=80%)
+# RMSL thresholds (%)
 RMSL_MIN_EU=60
 RMSL_MIN_ROW=80
 
-# LLM (optional; keep local)
-OPENAI_API_KEY=sk-***your_key_here***
+# Optional LLM assistance (leave empty if not used)
+OPENAI_API_KEY=
 MODEL_NAME=gpt-4o-mini
-
-# Notifications / integrations (optional)
-WEBHOOK_QA=
-WEBHOOK_PURCHASING=
 ```
 
-> 🔒 **Never** commit `.env` or keys. GitHub will block pushes with secrets.
+**Important:** Add `.env` to `.gitignore` and never commit keys.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Usage (CLI)
 
 ```bash
-# 1) Install deps
+# Install dependencies
 npm install
 
-# 2) Create your local env file
-cp .env.example .env   # if provided, else create manually (see above)
-
-# 3) Run the planner CLI
+# Run the planner
 npm run start
 # or
 node src/index.js
 
-# 4) Optional REST API
-npm run dev            # starts server with auto-reload (if nodemon configured)
+# Optional: run a specific day or mode (if supported by index.js)
+# node src/index.js --today
 ```
 
-**Typical output:** a day plan summary and per-order reasoning (pass/fail, who is notified, why).
+**Output:** A console report listing due orders, pass/fail per rule, and suggested escalations (QA/Purchasing) for blocked cases.
 
 ---
 
-## 🧪 Scripts
+## 🧠 Decision Flow (per order)
 
-`package.json` includes (adapt if needed):
-
-```json
-{
-  "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/api/server.js",
-    "plan:today": "node src/index.js --today",
-    "test": "node --test", 
-    "lint": "eslint ."
-  }
-}
-```
+1. Determine FG material & **target country**
+2. Select candidate **bulk lots** for the order
+3. **TRIC**: verify country permissions on selected bulk
+4. **ATP**: check availability for bulk & components
+5. **RMSL**: validate remaining shelf life against country thresholds
+6. If any check fails → mark **blocked** and add escalation suggestion
+7. Otherwise → mark **released** (part of today's 5 orders)
 
 ---
 
-## 🛠️ Example REST Endpoints (optional)
+## 🧩 Extensibility (next versions)
 
-- `GET /health` → `{ status: "ok" }`
-- `POST /plan/run` → runs the daily planning logic and returns a summary
-- `GET /plan/last` → returns last run result (cached)
-
-> Swagger can be added if you prefer (you mentioned liking Swagger).
-
----
-
-## 🧠 Planning Logic (MVP)
-
-1. **Select due orders** (today)  
-2. For each order:
-   - FG material & **target country**
-   - **TRIC** check on candidate bulk lots
-   - **ATP** on bulk and all BOM components
-   - **RMSL** per country rule (EU vs RoW; override via `.env`)
-   - If any check fails → mark **blocked**
-     - bulk/TRIC/RMSL issues → **QA** notified (prioritize/release)
-     - component shortages → **Purchasing** notified (expedite/alt)
-3. Generate **commentary** (“like a human planner”) and decision summary.
+- Replace mock services with SAP S/4HANA data sources
+- Add **MQTT/Event Bus** to publish planning events
+- Add **REST API** and **Web UI** for visibility
+- Integrate **SAP Build Process Automation** workflows
 
 ---
 
-## 🧩 Extensibility
+## 🧯 Security
 
-- Swap mock services with real S/4HANA (stocks, lots, inspection lots, TRIC).
-- Plug into **SAP Build Process Automation** flows per role (DS, DP, TMC, etc.).
-- Add MQTT/WebSocket events if you want real-time updates to a web UI.
-- Add Auth (Auth0 / JWT) if exposing APIs.
-
----
-
-## 🧯 Security & Secrets
-
-- Keep `.env` local; add to `.gitignore`.
-- If you ever committed secrets:
-  - Remove from index: `git rm --cached .env && git commit -m "remove env"`
-  - Rewrite history (filter-repo/BFG) or use an **orphan clean branch**, then force-push.
-  - **Rotate keys** (e.g., regenerate OpenAI key).
-
----
-
-## 🐳 Docker (optional)
-
-`Dockerfile` (example skeleton):
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev
-COPY . .
-EXPOSE 4000
-CMD ["node", "src/index.js"]
-```
-
-Build & run:
-```bash
-docker build -t planner-agent .
-docker run --env-file .env -p 4000:4000 planner-agent
-```
-
----
-
-## ✅ Status & Roadmap
-
-- [x] Mock data & rule engine (TRIC, ATP, RMSL)
-- [x] QA/Purchasing agent stubs (LLM-assisted)
-- [x] CLI & optional REST
-- [ ] SAP Build Apps front-end
-- [ ] SAP BPA workflow hooks
-- [ ] S/4HANA integration layer
-- [ ] Role-based access & audit trail
-
----
-
-## 📝 Contributing
-
-- Conventional commits (`feat:`, `fix:`, `chore:` …)
-- Create feature branches from `main`
-- PR with short description + test coverage if possible
+- Keep `.env` local; **never** commit secrets
+- If a secret was committed by mistake, remove it from history and **rotate** the key
 
 ---
 
 ## 📄 License
 
-MIT (adjust as needed)
-
----
-
-## 🙌 Acknowledgments
-
-- SAP Build Apps & Build Process Automation concepts for workflow integration  
-- Ideas around **MCP** (tool access) and **A2A** (multi-agent orchestration) for future layering  
-- Thanks to everyone experimenting with agentic planning in regulated environments
+MIT (adjust if needed)
